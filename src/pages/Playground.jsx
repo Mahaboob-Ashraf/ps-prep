@@ -11,6 +11,7 @@ import {
   Bot,
   BookOpen,
   Code2,
+  Keyboard, // Added icon for Input
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import Editor from "@monaco-editor/react";
@@ -25,12 +26,17 @@ const Playground = () => {
   // UI States
   const [showSolution, setShowSolution] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [code, setCode] = useState("// Loading...");
+
+  // FIXED: Removed the confusing 'def solve():' boilerplate
+  const [code, setCode] = useState("# Loading...");
 
   // Compiler States
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isError, setIsError] = useState(false);
+
+  // NEW: State for Custom Input (Stdin)
+  const [customInput, setCustomInput] = useState("");
 
   // Chat States
   const [messages, setMessages] = useState([
@@ -63,8 +69,9 @@ const Playground = () => {
         console.error("Error fetching question:", error);
       } else {
         setQuestion(data);
+        // FIXED: Simpler starting code
         setCode(
-          `# Write your solution for: ${data.title}\n\ndef solve():\n    # Your code here\n    pass`
+          `# Write your solution for: ${data.title}\n# Write your code below\n\n`
         );
       }
       setLoading(false);
@@ -85,6 +92,7 @@ const Playground = () => {
           language: "python",
           version: "3.10.0",
           files: [{ content: code }],
+          stdin: customInput, // FIXED: Sending user input to the compiler
         }),
       });
       const data = await response.json();
@@ -185,7 +193,6 @@ const Playground = () => {
         {/* 2. TOP SECTION: Stack vertically on mobile, Row on Laptop */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:h-[75vh]">
           {/* LEFT PANEL: Description */}
-          {/* On Mobile: Fixed Height 400px. On Laptop: Full Height */}
           <div className="w-full lg:w-1/3 h-[400px] lg:h-full bg-[#1e1e1e] rounded-xl border border-white/10 flex flex-col overflow-hidden shadow-2xl order-2 lg:order-1">
             <div className="h-12 border-b border-white/10 bg-[#262626] flex items-center px-6 shrink-0">
               <span className="text-blue-400 text-sm font-bold border-b-2 border-blue-400 h-full flex items-center">
@@ -270,7 +277,6 @@ const Playground = () => {
           </div>
 
           {/* RIGHT PANEL: Editor & Console */}
-          {/* On Mobile: Fixed Height 600px (tall). On Laptop: Full Height */}
           <div className="w-full lg:flex-1 h-[600px] lg:h-full bg-[#1e1e1e] rounded-xl border border-white/10 flex flex-col overflow-hidden shadow-2xl order-1 lg:order-2">
             <div className="h-12 border-b border-white/10 bg-[#262626] flex items-center justify-between px-4 shrink-0">
               <span className="text-xs text-green-400 px-2 sm:px-3 py-1 rounded bg-green-400/10 border border-green-400/20 font-mono">
@@ -310,27 +316,47 @@ const Playground = () => {
               />
             </div>
 
-            <div className="h-48 bg-[#151515] flex flex-col border-t border-white/10 shrink-0">
-              <div className="h-8 bg-[#262626] flex items-center px-4 gap-2 border-b border-white/5">
-                <Terminal size={12} className="text-gray-400" />
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                  Output Terminal
-                </span>
+            {/* SPLIT TERMINAL SECTION: INPUT & OUTPUT */}
+            <div className="h-48 bg-[#151515] flex border-t border-white/10 shrink-0">
+              {/* INPUT AREA (30% Width) */}
+              <div className="w-1/3 border-r border-white/10 flex flex-col">
+                <div className="h-8 bg-[#262626] flex items-center px-4 gap-2 border-b border-white/5">
+                  <Keyboard size={12} className="text-gray-400" />
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                    Command Line Input
+                  </span>
+                </div>
+                <textarea
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  placeholder="Enter inputs here before running(if any)..."
+                  className="flex-1 bg-[#151515] text-white p-3 text-sm font-mono focus:outline-none resize-none placeholder:text-gray-700"
+                />
               </div>
-              <div className="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar">
-                {output ? (
-                  <pre
-                    className={`${
-                      isError ? "text-red-400" : "text-gray-300"
-                    } whitespace-pre-wrap`}
-                  >
-                    {output}
-                  </pre>
-                ) : (
-                  <div className="text-gray-600 italic">
-                    Run code to see output...
-                  </div>
-                )}
+
+              {/* OUTPUT AREA (70% Width) */}
+              <div className="w-2/3 flex flex-col">
+                <div className="h-8 bg-[#262626] flex items-center px-4 gap-2 border-b border-white/5">
+                  <Terminal size={12} className="text-gray-400" />
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                    Output
+                  </span>
+                </div>
+                <div className="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar">
+                  {output ? (
+                    <pre
+                      className={`${
+                        isError ? "text-red-400" : "text-gray-300"
+                      } whitespace-pre-wrap`}
+                    >
+                      {output}
+                    </pre>
+                  ) : (
+                    <div className="text-gray-600 italic">
+                      Run code to see output...
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
